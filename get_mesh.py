@@ -3,7 +3,6 @@ Read mesh annotations for each PubMed document
 """
 import glob
 import sys
-#import os
 import gzip
 import xml.etree.ElementTree as ET
 import json
@@ -13,7 +12,6 @@ def get_mesh(earliest_year, input_file, output_file):
 
     out_f = open(output_file, 'wt')
     
-    # import pdb; pdb.set_trace()
     root = ET.fromstring(gzip.open(input_file, 'rt').read())
     articles = []
     
@@ -22,21 +20,21 @@ def get_mesh(earliest_year, input_file, output_file):
         abstract = doc.find('.//Abstract')
         if abstract == None: # Skip articles without abstract.
             #print("abstract skip")
-            continue
+            break
 
         mesh_list = doc.find('.//MeshHeadingList')
         if mesh_list == None: # Skip articles without mesh terms.
             #print("mesh skip:", mesh_list)
-            continue
+            break
 
         pub_year_node = doc.find('.//PubDate').find('Year')
         if pub_year_node == None:
             #print("no year node")
-            continue
+            break
 
         if int(pub_year_node.text) <= earliest_year: # Skip articles that were published before earliest_year.
             #print("bad year", int(pub_year_node.text))
-            continue
+            break
 
         pub_year = pub_year_node.text
 
