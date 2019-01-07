@@ -1,12 +1,8 @@
 """
 Read mesh annotations for each PubMed document
 """
-import glob
-import sys
-import gzip
+import glob, sys, gzip, json, re
 import xml.etree.ElementTree as ET
-import json
-import re
 
 def get_mesh(earliest_year, input_file, output_file):
 
