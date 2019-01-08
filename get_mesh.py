@@ -1,12 +1,10 @@
 """
 Read mesh annotations for each PubMed document
 """
-import glob, sys, gzip, json, re
+import sys, gzip, json, re
 import xml.etree.ElementTree as ET
 
 def get_mesh(earliest_year, input_file, output_file):
-
-    out_f = open(output_file, 'wt')
     
     root = ET.fromstring(gzip.open(input_file, 'rt').read())
     articles = []
@@ -32,12 +30,10 @@ def get_mesh(earliest_year, input_file, output_file):
             #print("bad year", int(pub_year_node.text))
             break
 
-        pub_year = pub_year_node.text
-
         article = {}
         article['pubmed_id'] = doc.find('.//PMID').text
         
-        article['pub_year'] = pub_year
+        article['pub_year'] = pub_year_node.text
 
         article["abstract"] = []
         for part in abstract:
@@ -57,8 +53,9 @@ def get_mesh(earliest_year, input_file, output_file):
         
         articles.append(article)
     
-    if len(articles) > 0:
-        json.dump(articles, out_f, indent=2, sort_keys=True)
+    with open(output_file, 'wt') as f:
+        if len(articles) > 0:
+            json.dump(articles, f, indent=2, sort_keys=True)
                 
 if __name__ == '__main__':
     get_mesh(2013, *sys.argv[1:])
