@@ -9,7 +9,7 @@ is_neuro = load_data("./" + sys.argv[1])
 
 neuro_count = 0
 for value in is_neuro:
-    if value == "yes":
+    if value == 1:
         neuro_count += 1
 
 print(neuro_count, "/", len(is_neuro))

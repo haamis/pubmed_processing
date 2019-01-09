@@ -1,17 +1,26 @@
-import json, re, sys, os, pickle
+import json, re, sys, os, pickle, csv
 from tqdm import tqdm
 
-def preprocess_data(input_file):
-    print("Reading input file..")
+def preprocess_data(input_file, mesh_file):
+    print("Reading input files..")
 
     with open(input_file) as f:
         data = json.load(f)
+
+    mesh_ids = []
+
+    with open(mesh_file) as f:
+        csvreader = csv.reader(f)
+        for entry in csvreader:
+            mesh_ids.append(entry[0].split("/")[-1])
+
+    mesh_ids.pop(0)
 
     abstracts = []
     is_neuro = []
 
     # Neuroscience MeSH-terms.
-    reg = re.compile(r"(D009420|D009457|D009474|D009422|D001520|D011579|D001523|D004191)")
+    reg = re.compile(r"|".join([x for x in mesh_ids]))
 
     for article in tqdm(data, desc="Grabbing abstracts and mesh terms"):
         abstracts.append("\n".join([x["text"] for x in article["abstract"]]))
@@ -30,4 +39,4 @@ def preprocess_data(input_file):
         pickle.dump(is_neuro, f)
 
 if __name__ == '__main__':
-    preprocess_data(sys.argv[1])
+    preprocess_data(*sys.argv[1:])
