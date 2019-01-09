@@ -19,8 +19,11 @@ def preprocess_data(input_file, mesh_file):
     abstracts = []
     is_neuro = []
 
-    # Neuroscience MeSH-terms.
-    reg = re.compile(r"|".join([x for x in mesh_ids]))
+    # Everything under A08.
+    reg_string = r"|".join([x for x in mesh_ids])
+
+    # Rest of the neuroscience MeSH-terms.
+    reg = re.compile(reg_string + r"|D009420|D009422|D001520|D011579|D001523|D004191")
 
     for article in tqdm(data, desc="Grabbing abstracts and mesh terms"):
         abstracts.append("\n".join([x["text"] for x in article["abstract"]]))
@@ -39,4 +42,4 @@ def preprocess_data(input_file, mesh_file):
         pickle.dump(is_neuro, f)
 
 if __name__ == '__main__':
-    preprocess_data(*sys.argv[1:])
+    preprocess_data(sys.argv[1], sys.argv[2])
