@@ -1,4 +1,5 @@
 import sys, pickle
+from tqdm import tqdm
 
 def load_data(file_name):
     
@@ -8,7 +9,7 @@ def load_data(file_name):
 is_neuro = load_data("./" + sys.argv[1])
 
 neuro_count = 0
-for value in is_neuro:
+for value in tqdm(is_neuro, desc="Counting.."):
     if value == 1:
         neuro_count += 1
 

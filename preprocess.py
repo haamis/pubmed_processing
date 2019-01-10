@@ -1,29 +1,30 @@
 import json, re, sys, os, pickle, csv
 from tqdm import tqdm
 
-def preprocess_data(input_file, mesh_file):
+def preprocess_data(input_file, *mesh_files):
     print("Reading input files..")
 
     with open(input_file) as f:
         data = json.load(f)
 
-    mesh_ids = []
+    # Set of MeSH-term UIDs initialized with some values.
+    mesh_ids = set(["D009420", "D009422", "D001520", "D011579", "D001523", "D004191"])
 
-    with open(mesh_file) as f:
-        csvreader = csv.reader(f)
-        for entry in csvreader:
-            mesh_ids.append(entry[0].split("/")[-1])
+    print("Reading mesh data..")
+    # Rest are read from csv files that are queried from NLM.
+    for mesh_file in mesh_files:
+        with open(mesh_file) as f:
+            csvreader = csv.reader(f)
+            next(csvreader) # Skip first entry, it is the name of the field e.g. 'descriptor'
+            for entry in csvreader:
+                mesh_ids.add(entry[0].split("/")[-1])
 
-    mesh_ids.pop(0)
+    reg_string = r"|".join([x for x in mesh_ids])
+
+    reg = re.compile(reg_string)
 
     abstracts = []
     is_neuro = []
-
-    # Everything under A08.
-    reg_string = r"|".join([x for x in mesh_ids])
-
-    # Rest of the neuroscience MeSH-terms.
-    reg = re.compile(reg_string + r"|D009420|D009422|D001520|D011579|D001523|D004191")
 
     for article in tqdm(data, desc="Grabbing abstracts and mesh terms"):
         abstracts.append("\n".join([x["text"] for x in article["abstract"]]))
@@ -42,4 +43,4 @@ def preprocess_data(input_file, mesh_file):
         pickle.dump(is_neuro, f)
 
 if __name__ == '__main__':
-    preprocess_data(sys.argv[1], sys.argv[2])
+    preprocess_data(sys.argv[1], *sys.argv[2:])
