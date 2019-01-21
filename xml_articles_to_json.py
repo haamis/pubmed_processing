@@ -58,4 +58,4 @@ def get_mesh(earliest_year, input_file, output_file):
             json.dump(articles, f, indent=2, sort_keys=True)
                 
 if __name__ == '__main__':
-    get_mesh(2013, *sys.argv[1:])
+    get_mesh(2013, sys.argv[1], sys.argv[2])
