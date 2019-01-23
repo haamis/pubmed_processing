@@ -12,7 +12,7 @@ def preprocess_data(input_file):
 
     for article in tqdm(data, desc="Grabbing abstracts and mesh terms"):
         abstracts.append("\n".join([x["text"] for x in article["abstract"]]))
-        mesh_terms.append([x['mesh_id'] for x in article['mesh_list']])
+        mesh_terms.append([tuple(x['mesh_id']) for x in article['mesh_list']])
 
     #print(abstracts[0])
     #print(mesh_terms[0])
