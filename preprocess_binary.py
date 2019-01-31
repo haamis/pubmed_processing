@@ -32,7 +32,7 @@ def preprocess_data(input_file, mesh_file):
     with open(os.path.splitext(input_file)[0] + "_abstracts.dump", "wb") as f:
         pickle.dump(abstracts, f)
 
-    with open(os.path.splitext(input_file)[0] + "is_neuro.dump", "wb") as f:
+    with open(os.path.splitext(input_file)[0] + "_is_neuro.dump", "wb") as f:
         pickle.dump(is_neuro, f)
 
 if __name__ == '__main__':
