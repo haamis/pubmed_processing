@@ -2,20 +2,16 @@
 
 echo -n "["
 
-if [ -s "${@:1}" ]
-then
-	cat "${@:1}" | tail -c +2 | head -c -2
-fi
+# Because trailing commas in lists are not valid json, we handle the first file seperately
+# then do the rest in a loop, inserting commas in between.
+cat $1 | tail -c +2 | head -c -2
 
 shift
 
-for f in "$@"
+for f in $@
 do
-	if [ -s $f ]
-	then
-		echo -n ", "
-		cat $f | tail -c +2 | head -c -2
-	fi
+	echo -n ", "
+	cat $f | tail -c +2 | head -c -2
 done
 
 echo "]"

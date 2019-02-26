@@ -14,21 +14,24 @@ def get_mesh(earliest_year, input_file, output_file):
         abstract = doc.find('.//Abstract')
         if abstract == None: # Skip articles without abstract.
             #print("abstract skip")
-            break
+            continue
+        else:
+            abstract = abstract.findall('.//AbstractText')
+            #print(abstract)
 
         mesh_list = doc.find('.//MeshHeadingList')
         if mesh_list == None: # Skip articles without mesh terms.
             #print("mesh skip:", mesh_list)
-            break
+            continue
 
         pub_year_node = doc.find('.//PubDate').find('Year')
         if pub_year_node == None:
             #print("no year node")
-            break
+            continue
 
-        if int(pub_year_node.text) <= earliest_year: # Skip articles that were published before earliest_year.
+        elif int(pub_year_node.text) < earliest_year: # Skip articles that were published before earliest_year.
             #print("bad year", int(pub_year_node.text))
-            break
+            continue
 
         article = {}
         article['pubmed_id'] = doc.find('.//PMID').text
@@ -38,10 +41,11 @@ def get_mesh(earliest_year, input_file, output_file):
         article["abstract"] = []
         for part in abstract:
             # Regular expression trick to avoid problems with xml tags inside <AbstractText> element.
-            reg = re.compile(r"</?AbstractText[\w=\"\s]*>\s*")
-            abstract_text = ET.tostring(part, encoding='unicode')
-            abstract_text = reg.sub("", abstract_text)
-            article['abstract'].append({'text': abstract_text, 'category': part.get('NlmCategory')})
+            #reg = re.compile(r"</?AbstractText[\w=\"\s]*>\s*")
+            #abstract_text = ET.tostring(part, encoding='unicode')
+            #abstract_text = reg.sub("", abstract_text)
+            article['abstract'].append({'text': part.text, 'category': part.get('NlmCategory')})
+            #print(article['abstract'][-1])
         
         article['mesh_list'] = []
         for mesh in mesh_list:
@@ -53,8 +57,8 @@ def get_mesh(earliest_year, input_file, output_file):
         
         articles.append(article)
     
-    with open(output_file, 'wt') as f:
-        if len(articles) > 0:
+    if len(articles) > 0:
+        with open(output_file, 'wt') as f:
             json.dump(articles, f, indent=2, sort_keys=True)
                 
 if __name__ == '__main__':
