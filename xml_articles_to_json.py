@@ -44,6 +44,8 @@ def get_mesh(earliest_year, input_file, output_file):
             #reg = re.compile(r"</?AbstractText[\w=\"\s]*>\s*")
             #abstract_text = ET.tostring(part, encoding='unicode')
             #abstract_text = reg.sub("", abstract_text)
+            if part.text == None:
+                continue
             article['abstract'].append({'text': part.text, 'category': part.get('NlmCategory')})
             #print(article['abstract'][-1])
         

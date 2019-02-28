@@ -10,17 +10,13 @@ def preprocess_data(input_file):
     abstracts = []
     mesh_terms = []
 
-    #print(data[1])
-
     print("Grabbing abstracts..")
 
     for article in tqdm(data, desc="Grabbing abstracts"):
-        # all_parts = []
-        # for part in article["abstract"]:
-        #     all_parts.append(part["text"])
-        # abstracts.append("\n".join(all_parts))
-        #time.sleep(0.01)
-        abstracts.append("\n".join( [ part["text"] for part in article["abstract"] ] ))
+        try:
+            abstracts.append("\n".join( [ part["text"] for part in article["abstract"] ] ))
+        except:
+            import pdb; pdb.set_trace()
 
     print("Dumping abstracts..")
 
