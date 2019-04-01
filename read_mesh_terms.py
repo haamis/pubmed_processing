@@ -2,8 +2,7 @@ import json, csv, sys
 
 print("Reading input files..")
 
-# Set of MeSH-term UIDs initialized with top level values not in the files.
-mesh_ids = ["D009420", "D009422", "D001520", "D011579", "D001523", "D004191"]
+mesh_ids = []
 
 print("Reading mesh data..")
 # Rest are read from csv files that are queried from NLM.

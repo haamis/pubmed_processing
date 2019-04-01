@@ -1,7 +1,7 @@
 """
 Read mesh annotations for each PubMed document
 """
-import sys, gzip, json, re
+import sys, gzip, json
 import xml.etree.ElementTree as ET
 
 def get_mesh(earliest_year, input_file, output_file):
@@ -33,6 +33,8 @@ def get_mesh(earliest_year, input_file, output_file):
             #print("bad year", int(pub_year_node.text))
             continue
 
+        
+
         article = {}
         article['pubmed_id'] = doc.find('.//PMID').text
         
@@ -40,10 +42,6 @@ def get_mesh(earliest_year, input_file, output_file):
 
         article["abstract"] = []
         for part in abstract:
-            # Regular expression trick to avoid problems with xml tags inside <AbstractText> element.
-            #reg = re.compile(r"</?AbstractText[\w=\"\s]*>\s*")
-            #abstract_text = ET.tostring(part, encoding='unicode')
-            #abstract_text = reg.sub("", abstract_text)
             if part.text == None:
                 continue
             article['abstract'].append({'text': part.text, 'category': part.get('NlmCategory')})
@@ -56,6 +54,18 @@ def get_mesh(earliest_year, input_file, output_file):
             mesh_name = desc.text
             major_topic = desc.get('MajorTopicYN')
             article['mesh_list'].append({'mesh_id':mesh_id, 'mesh_name':mesh_name, 'major_topic':major_topic})
+
+        # article['author_list'] = []
+        # for author in doc.findall('.//AuthorList/Author'):
+        #     firstname = author.find('ForeName')
+        #     lastname = author.find('LastName')
+        #     affiliation = author.find('AffiliationInfo/Affiliation')
+
+        #     if firstname:
+
+
+        # article['country'] = []
+
         
         articles.append(article)
     

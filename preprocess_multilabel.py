@@ -1,4 +1,4 @@
-import json, sys, os, pickle, time
+import json, sys, os, pickle
 from tqdm import tqdm
 
 def preprocess_data(input_file):
