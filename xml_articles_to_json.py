@@ -33,8 +33,6 @@ def get_mesh(earliest_year, input_file, output_file):
             #print("bad year", int(pub_year_node.text))
             continue
 
-        
-
         article = {}
         article['pubmed_id'] = doc.find('.//PMID').text
         
@@ -55,17 +53,12 @@ def get_mesh(earliest_year, input_file, output_file):
             major_topic = desc.get('MajorTopicYN')
             article['mesh_list'].append({'mesh_id':mesh_id, 'mesh_name':mesh_name, 'major_topic':major_topic})
 
-        # article['author_list'] = []
-        # for author in doc.findall('.//AuthorList/Author'):
-        #     firstname = author.find('ForeName')
-        #     lastname = author.find('LastName')
-        #     affiliation = author.find('AffiliationInfo/Affiliation')
-
-        #     if firstname:
-
-
-        # article['country'] = []
-
+        article['author_list'] = []
+        for author in doc.findall('.//AuthorList/Author'):
+            firstname = author.find('ForeName').text if author.find('ForeName') != None else ""
+            lastname = author.find('LastName').text if author.find('LastName') != None else ""
+            affiliation = author.find('AffiliationInfo/Affiliation').text if author.find('AffiliationInfo/Affiliation') != None else ""
+            article['author_list'].append((firstname, lastname, affiliation))
         
         articles.append(article)
     
