@@ -6,7 +6,7 @@ import xml.etree.ElementTree as ET
 
 def get_mesh(earliest_year, input_file, output_file):
     
-    root = ET.fromstring(gzip.open(input_file, 'rt').read())
+    root = ET.parse(gzip.open(input_file, 'rt')).getroot()
     articles = []
     
     for doc in root.findall('.//PubmedArticle'):
@@ -38,12 +38,19 @@ def get_mesh(earliest_year, input_file, output_file):
         
         article['pub_year'] = pub_year_node.text
 
-        article["abstract"] = []
+        article['title'] = doc.find('.//ArticleTitle').text
+
+        abstract_parts = []
+
         for part in abstract:
             if part.text == None:
                 continue
-            article['abstract'].append({'text': part.text, 'category': part.get('NlmCategory')})
-            #print(article['abstract'][-1])
+            if part.get('NlmCategory'):
+                abstract_parts.append(part.get('NlmCategory') + ": " + part.text)
+            else:
+                abstract_parts.append(part.text)
+        
+        article["abstract"] = "".join(abstract_parts)
         
         article['mesh_list'] = []
         for mesh in mesh_list:
