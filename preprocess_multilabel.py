@@ -10,14 +10,14 @@ def preprocess_data(input_file):
     abstracts = []
     mesh_terms = []
 
-    print("Grabbing abstracts..")
+    #print("Grabbing abstracts..")
 
     for article in tqdm(data, desc="Grabbing abstracts"):
         try:
-            abstracts.append("\n".join( [ part["text"] for part in article["abstract"] ] ))
+            abstracts.append(article["title"] + '\n' + article["abstract"])
         except:
             import pdb; pdb.set_trace()
-
+43011615
     print("Dumping abstracts..")
 
     with open(os.path.splitext(input_file)[0] + "_abstracts.dump", "wb") as f:

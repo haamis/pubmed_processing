@@ -38,17 +38,21 @@ def get_mesh(earliest_year, input_file, output_file):
         
         article['pub_year'] = pub_year_node.text
 
-        article['title'] = doc.find('.//ArticleTitle').text
+        article['title'] = "".join(doc.find('.//ArticleTitle').itertext())
 
         abstract_parts = []
 
         for part in abstract:
+            #print(part)
+            #input()
             if part.text == None:
+                #print("skipped")
                 continue
             if part.get('NlmCategory'):
-                abstract_parts.append(part.get('NlmCategory') + ": " + part.text)
+                #print("hello")
+                abstract_parts.append(part.get('NlmCategory') + ": " + "".join(part.itertext()))
             else:
-                abstract_parts.append(part.text)
+                abstract_parts.append("".join(part.itertext()))
         
         article["abstract"] = "".join(abstract_parts)
         
