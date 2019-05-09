@@ -1,5 +1,9 @@
-import json, sys, os, pickle
+import json, sys, os, pickle, lzma
 import numpy as np
+
+from functools import partial
+
+from multiprocessing import Pool
 
 from tqdm import tqdm
 
@@ -9,40 +13,69 @@ from sklearn.preprocessing import MultiLabelBinarizer
 from bert import tokenization
 
 maxlen = 512
+PROCESSES = 20
 
-def tokenize(abstracts, maxlen=512):
-    tokenizer = tokenization.FullTokenizer("../biobert_pubmed/vocab.txt", do_lower_case=False)
+def tokenize(abstracts, tokenizer, maxlen=512):
     ret_val = []
-    for abstract in tqdm(abstracts, desc="Tokenizing abstracts"):
+    for abstract in abstracts:
         abstract = ["[CLS]"] + tokenizer.tokenize(abstract)[0:maxlen-2] + ["[SEP]"]
         ret_val.append(abstract)
-    return ret_val, tokenizer.vocab
+    return ret_val
+
+def vectorize(abstracts, vocab, maxlen=512):
+    ret_val = []
+    for abstract in abstracts:
+        ret_val.append(np.asarray( [vocab[token] for token in abstract] + [0] * (maxlen - len(abstract)) ))
+    return np.asarray(ret_val)
+
+def chunk_list(list, chunk_size):
+    res = []
+    for i in range(0, len(list), chunk_size):
+        res.append(list[i:i+chunk_size])
+    return res
 
 def preprocess_data(input_file):
-    print("Reading input files..")
+    
+    # Create child processes before we load a bunch of data.
+    with Pool(PROCESSES) as p:
 
-    with open(input_file) as f:
-        data = json.load(f)
+        print("Reading input files..")
 
-    abstracts = []
-    mesh_terms = []
+        with lzma.open(input_file, 'rt') as f:
+            data = json.load(f)
 
-    for article in tqdm(data, desc="Grabbing abstracts"):
-        try:
-            abstracts.append(article["title"] + '\n' + article["abstract"])
-        except:
-            import pdb; pdb.set_trace()
+        abstracts = []
+        mesh_terms = []
 
-    for article in tqdm(data, desc="Grabbing mesh terms"):
-        mesh_terms.append([part['mesh_id'] for part in article['mesh_list']])
+        for article in tqdm(data, desc="Grabbing abstracts"):
+            try:
+                abstracts.append(article["title"] + '\n' + article["abstract"])
+            except:
+                import pdb; pdb.set_trace()
 
-    del data
+        for article in tqdm(data, desc="Grabbing mesh terms"):
+            mesh_terms.append([part['mesh_id'] for part in article['mesh_list']])
 
-    abstracts, vocab = tokenize(abstracts, maxlen=maxlen)
+        del data
 
-    print("Vectorizing..")
-    token_vectors = np.asarray( [np.asarray( [vocab[token] for token in abstract] + [0] * (maxlen - len(abstract)) ) for abstract in abstracts] )
-    print("Token_vectors shape:", token_vectors.shape)
+        tokenizer = tokenization.FullTokenizer("../biobert_pubmed/vocab.txt", do_lower_case=False)
+
+        # Prcess text in parallel by first dividing into chunks..
+        abstracts_list = chunk_list(abstracts, len(abstracts)//PROCESSES)
+        del abstracts
+
+        # ..tokenizing and vectorizing those chunks..
+        print("Tokenizing abstracts..")
+        abstracts_list = p.map(partial(tokenize, tokenizer=tokenizer), abstracts_list)
+        print("Vectorizing..")
+        abstracts_list = p.map(partial(vectorize, vocab=tokenizer.vocab), abstracts_list)
+    
+    # Child processes terminated here.
+
+    # ..and then combining the chunks back to a single list.
+    abstracts = np.concatenate(abstracts_list)
+
+    print("Token_vectors shape:", abstracts.shape)
     
     print("Binarizing labels..")
     mlb = MultiLabelBinarizer(sparse_output=True)
@@ -52,19 +85,22 @@ def preprocess_data(input_file):
 
     abstracts_train, abstracts_test, labels_train, labels_test = train_test_split(abstracts, labels, test_size=0.1)
 
-    print("Dumping..")
-
-    with open(os.path.splitext(input_file)[0] + "_abstracts_train.dump", "wb") as f:
-        pickle.dump(abstracts_train, f)
+    # Use compression level 0 with lzma to reduce processing time. 
+    # This makes the compression take slightly less time than 
+    # using the gzip python module with its default compression level (9).
+    # The resulting file is still smaller than using gzip with compression level 9.
+    with lzma.open(os.path.splitext(input_file)[0] + "_abstracts_train.dump.xz", "wb", preset=0) as f:
+        pickle.dump(abstracts_train, f, protocol=4)
+        # Use pickle protocol 4 to enable saving objects over 4GB.
     
-    with open(os.path.splitext(input_file)[0] + "_abstracts_test.dump", "wb") as f:
-        pickle.dump(abstracts_test, f)
+    with lzma.open(os.path.splitext(input_file)[0] + "_abstracts_test.dump.xz", "wb", preset=0) as f:
+        pickle.dump(abstracts_test, f, protocol=4)
     
-    with open(os.path.splitext(input_file)[0] + "_multilabels_train.dump", "wb") as f:
-        pickle.dump(labels_train, f)
+    with lzma.open(os.path.splitext(input_file)[0] + "_multilabels_train.dump.xz", "wb", preset=0) as f:
+        pickle.dump(labels_train, f, protocol=4)
     
-    with open(os.path.splitext(input_file)[0] + "_multilabels_test.dump", "wb") as f:
-        pickle.dump(labels_test, f)
+    with lzma.open(os.path.splitext(input_file)[0] + "_multilabels_test.dump.xz", "wb", preset=0) as f:
+        pickle.dump(labels_test, f, protocol=4)
 
 if __name__ == '__main__':
     preprocess_data(sys.argv[1])
