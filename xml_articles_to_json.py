@@ -1,42 +1,50 @@
-"""
-Read mesh annotations for each PubMed document
-"""
 import sys, gzip, json
 import xml.etree.ElementTree as ET
 
 def get_mesh(earliest_year, input_file, output_file):
     
-    root = ET.parse(gzip.open(input_file, "rt")).getroot()
+    with gzip.open(input_file, "rt") as f:
+        root = ET.parse(f).getroot()
+
     articles = []
-    
-    for doc in root.findall(".//PubmedArticle"):
+
+    for doc in root.findall("PubmedArticle"):
         
         abstract = doc.find(".//Abstract")
-        if abstract == None: # Skip articles without abstract.
+        if abstract is None: # Skip articles without abstract.
             #print("abstract skip")
             continue
         else:
-            abstract = abstract.findall(".//AbstractText")
+            abstract = abstract.findall("AbstractText")
             #print(abstract)
 
         mesh_list = doc.find(".//MeshHeadingList")
-        if mesh_list == None: # Skip articles without mesh terms.
+        if mesh_list is None: # Skip articles without mesh terms.
             #print("mesh skip:", mesh_list)
             continue
 
-        pub_year_node = doc.find(".//PubDate").find("Year")
-        if pub_year_node == None:
-            #print("no year node")
-            continue
+        # Add ArticleDate as first choice, then parse PubDate in <JournalIssue>.
+        pub_date_node = doc.find(".//PubDate")
+        if pub_date_node.find("Year") is None:
+            print("wat", pub_date_node.find("MedlineDate").text)
+        
+        article_date_node = doc.find(".//ArticleDate")
 
-        elif int(pub_year_node.text) < earliest_year: # Skip articles that were published before `earliest_year`.
+        if article_date_node is None:
+            if pub_date_node.find("Year") is None:
+                continue
+
+            elif int(pub_date_node.find("Year").text) < earliest_year: # Skip articles that were published before `earliest_year`.
+                continue
+
+        elif int(article_date_node.find("Year").text) < earliest_year: # Skip articles that were published before `earliest_year`.
             #print("bad year", int(pub_year_node.text))
             continue
 
         article = {}
         article["pubmed_id"] = doc.find(".//PMID").text
         
-        article["pub_year"] = pub_year_node.text
+        article["pub_year"] = ( article_date_node or pub_date_node ).find("Year").text
 
         article["title"] = "".join(doc.find(".//ArticleTitle").itertext())
 
@@ -62,7 +70,7 @@ def get_mesh(earliest_year, input_file, output_file):
 
         article["author_list"] = []
         last_affiliations = ""
-        for author in doc.findall(".//AuthorList/Author"):
+        for author in doc.findall("./AuthorList/Author"):
             if author.find("LastName") is not None:
                 lastname = author.find("LastName").text
                 if author.find("ForeName") is not None:
@@ -71,9 +79,10 @@ def get_mesh(earliest_year, input_file, output_file):
                     firstname = ""
             elif author.find("CollectiveName") is not None:
                 lastname = author.find("CollectiveName").text
+                firstname = "Collective"
             else:
                 # Debug.
-                print(author.find("ForeName"), author.find("LastName"), author.find("CollectiveName"))
+                print("Debug print", author.find("ForeName"), author.find("LastName"), author.find("CollectiveName"))
                 continue
             
             aff_nodes = author.findall("AffiliationInfo/Affiliation")
