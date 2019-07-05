@@ -83,6 +83,10 @@ def preprocess_data(input_file):
     labels = labels.astype('b')
     print("Labels shape:", labels.shape)
 
+    # Save list of labels.
+    with open(os.path.splitext(input_file)[0] + "_class_labels.txt", "wt") as f:
+        json.dump(list(mlb.classes_), f)
+
     abstracts_train, abstracts_test, labels_train, labels_test = train_test_split(abstracts, labels, test_size=0.1)
 
     # Use compression level 0 with lzma to reduce processing time. 
