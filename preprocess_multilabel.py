@@ -15,24 +15,11 @@ from bert import tokenization
 maxlen = 512
 PROCESSES = 20
 
-def tokenize(abstracts, tokenizer, maxlen=512):
-    ret_val = []
-    for abstract in abstracts:
-        abstract = ["[CLS]"] + tokenizer.tokenize(abstract)[0:maxlen-2] + ["[SEP]"]
-        ret_val.append(abstract)
-    return ret_val
+def tokenize(abstract, tokenizer, maxlen=512):
+    return ["[CLS]"] + tokenizer.tokenize(abstract)[0:maxlen-2] + ["[SEP]"]
 
-def vectorize(abstracts, vocab, maxlen=512):
-    ret_val = []
-    for abstract in abstracts:
-        ret_val.append(np.asarray( [vocab[token] for token in abstract] + [0] * (maxlen - len(abstract)) ))
-    return np.asarray(ret_val)
-
-def chunk_list(list, chunk_size):
-    res = []
-    for i in range(0, len(list), chunk_size):
-        res.append(list[i:i+chunk_size])
-    return res
+def vectorize(abstract, vocab, maxlen=512):
+    return np.asarray( [vocab[token] for token in abstract] + [0] * (maxlen - len(abstract)) )
 
 def preprocess_data(input_file):
     
@@ -48,10 +35,7 @@ def preprocess_data(input_file):
         mesh_terms = []
 
         for article in tqdm(data, desc="Grabbing abstracts"):
-            try:
-                abstracts.append(article["title"] + '\n' + article["abstract"])
-            except:
-                import pdb; pdb.set_trace()
+            abstracts.append(article["title"] + '\n' + article["journal"] + '\n' + article["abstract"])
 
         for article in tqdm(data, desc="Grabbing mesh terms"):
             mesh_terms.append([part['mesh_id'] for part in article['mesh_list']])
@@ -60,21 +44,14 @@ def preprocess_data(input_file):
 
         tokenizer = tokenization.FullTokenizer("../biobert_pubmed/vocab.txt", do_lower_case=False)
 
-        # Prcess text in parallel by first dividing into chunks..
-        abstracts_list = chunk_list(abstracts, len(abstracts)//PROCESSES)
-        del abstracts
-
-        # ..tokenizing and vectorizing those chunks..
-        print("Tokenizing abstracts..")
-        abstracts_list = p.map(partial(tokenize, tokenizer=tokenizer), abstracts_list)
+        print("Tokenizing..")
+        abstracts = p.map(partial(tokenize, tokenizer=tokenizer), abstracts)#, chunksize=500)
         print("Vectorizing..")
-        abstracts_list = p.map(partial(vectorize, vocab=tokenizer.vocab), abstracts_list)
+        abstracts = p.map(partial(vectorize, vocab=tokenizer.vocab), abstracts)#, chunksize=500)
+        # Child processes terminated here.
+
+    abstracts = np.asarray(abstracts)
     
-    # Child processes terminated here.
-
-    # ..and then combining the chunks back to a single list.
-    abstracts = np.concatenate(abstracts_list)
-
     print("Token_vectors shape:", abstracts.shape)
     
     print("Binarizing labels..")
