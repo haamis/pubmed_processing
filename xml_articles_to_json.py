@@ -1,7 +1,11 @@
 import sys, gzip, json
-import xml.etree.ElementTree as ET
+#import xml.etree.ElementTree as ET
+import lxml.etree as ET
+# lxml is about 2x faster, seemingly because of parse().
+from os.path import basename, dirname, splitext
+from tqdm import tqdm
 
-def get_mesh(earliest_year, input_file, output_file):
+def get_mesh(earliest_year, input_file, output_folder):
     
     with gzip.open(input_file, "rt") as f:
         root = ET.parse(f).getroot()
@@ -9,6 +13,8 @@ def get_mesh(earliest_year, input_file, output_file):
     articles = []
 
     for doc in root.findall("PubmedArticle"):
+        
+        article = {}
         
         abstract = doc.find(".//Abstract")
         if abstract is None: # Skip articles without abstract.
@@ -25,8 +31,8 @@ def get_mesh(earliest_year, input_file, output_file):
 
         # Add ArticleDate as first choice, then parse PubDate in <JournalIssue>.
         pub_date_node = doc.find(".//PubDate")
-        if pub_date_node.find("Year") is None:
-            print("wat", pub_date_node.find("MedlineDate").text)
+        # if pub_date_node.find("Year") is None:
+        #     print("wat", pub_date_node.find("MedlineDate").text)
         
         article_date_node = doc.find(".//ArticleDate")
 
@@ -37,22 +43,25 @@ def get_mesh(earliest_year, input_file, output_file):
             elif int(pub_date_node.find("Year").text) < earliest_year: # Skip articles that were published before `earliest_year`.
                 continue
 
+            else:
+                article["pub_year"] = pub_date_node.find("Year").text
+
         elif int(article_date_node.find("Year").text) < earliest_year: # Skip articles that were published before `earliest_year`.
             #print("bad year", int(pub_year_node.text))
             continue
 
-        article = {}
+        else:
+            article["pub_year"] = article_date_node.find("Year").text
+
         article["pubmed_id"] = doc.find(".//PMID").text
-        
-        article["pub_year"] = ( article_date_node or pub_date_node ).find("Year").text
 
         article["title"] = "".join(doc.find(".//ArticleTitle").itertext())
+
+        article["journal"] = "".join(doc.find(".//Journal/Title").itertext())
 
         abstract_parts = []
 
         for part in abstract:
-            if part.text == None:
-                continue
             if part.get("NlmCategory"):
                 abstract_parts.append(part.get("NlmCategory") + ": " + "".join(part.itertext()))
             else:
@@ -70,7 +79,7 @@ def get_mesh(earliest_year, input_file, output_file):
 
         article["author_list"] = []
         last_affiliations = ""
-        for author in doc.findall("./AuthorList/Author"):
+        for author in doc.findall(".//AuthorList/Author"):
             if author.find("LastName") is not None:
                 lastname = author.find("LastName").text
                 if author.find("ForeName") is not None:
@@ -99,8 +108,9 @@ def get_mesh(earliest_year, input_file, output_file):
         articles.append(article)
     
     if len(articles) > 0:
-        with open(output_file, "wt") as f:
+        with open(output_folder + '/' + splitext(basename(input_file))[0] + ".json", "wt") as f:
             json.dump(articles, f, indent=2, sort_keys=True)
                 
 if __name__ == "__main__":
-    get_mesh(2013, sys.argv[1], sys.argv[2])
+    for arg in tqdm(sys.argv[2:]):
+        get_mesh(2013, arg, dirname(sys.argv[1]))
