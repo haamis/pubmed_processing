@@ -30,26 +30,19 @@ def get_mesh(earliest_year, input_file, output_folder):
             continue
 
         # Add ArticleDate as first choice, then parse PubDate in <JournalIssue>.
-        pub_date_node = doc.find(".//PubDate")
-        # if pub_date_node.find("Year") is None:
-        #     print("wat", pub_date_node.find("MedlineDate").text)
-        
         article_date_node = doc.find(".//ArticleDate")
+        pub_date_node = doc.find(".//PubDate")
 
         if article_date_node is None:
             if pub_date_node.find("Year") is None:
                 continue
-
             elif int(pub_date_node.find("Year").text) < earliest_year: # Skip articles that were published before `earliest_year`.
                 continue
-
             else:
                 article["pub_year"] = pub_date_node.find("Year").text
-
         elif int(article_date_node.find("Year").text) < earliest_year: # Skip articles that were published before `earliest_year`.
             #print("bad year", int(pub_year_node.text))
             continue
-
         else:
             article["pub_year"] = article_date_node.find("Year").text
 
